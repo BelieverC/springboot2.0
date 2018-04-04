@@ -13,6 +13,12 @@ import reactor.core.publisher.Flux;
 
 import java.util.Collection;
 
+import static org.springframework.web.reactive.function.BodyInserters.fromObject;
+import static org.springframework.web.reactive.function.server.RequestPredicates.GET;
+import static org.springframework.web.reactive.function.server.RouterFunctions.route;
+import static org.springframework.web.reactive.function.server.ServerResponse.badRequest;
+import static org.springframework.web.reactive.function.server.ServerResponse.ok;
+
 
 /**
  * 路由器函数配置，可以理解成一个java版的xml配置
@@ -38,11 +44,24 @@ public class RouterFunctionConfiguration {
      */
     @Bean
     @Autowired
-    public RouterFunction<ServerResponse> findAllUser(UserRespository userRespository){
-        return RouterFunctions.route(RequestPredicates.GET("/user/findAll"),request->{
+    public RouterFunction<ServerResponse> findAllUser(UserRespository userRespository) {
+        return RouterFunctions.route(RequestPredicates.GET("/user/findAll"), request -> {
             Collection<User> users = userRespository.findAll();
             Flux<User> userFlux = Flux.fromIterable(users);
-            return ServerResponse.ok().body(userFlux,User.class);
+            return ServerResponse.ok().body(userFlux, User.class);
+        });
+    }
+
+    @Bean
+    public RouterFunction<?> findUserById(UserRespository userRespository) {
+        return route(GET("/user/{id}"), request -> {
+            // 获取URL参数
+            Long id = Long.valueOf(request.pathVariable("id"));
+
+            // 查询数据库，返回
+            return userRespository.findById(id)
+                    .map(user -> ok().body(fromObject(user)))
+                    .orElse(badRequest().build());
         });
     }
 }
